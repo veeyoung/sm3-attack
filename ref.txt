@@ -1,0 +1,9 @@
+https://github.com/xcy1116/sm3?tab=readme-ov-file#实现sm3生日攻击
+https://blog.csdn.net/Metal1/article/details/79887252
+
+https://github.com/xcy1116/sm3?tab=readme-ov-file#实现sm3长度扩展攻击
+https://zhuanlan.zhihu.com/p/44668032
+https://github.com/hjzin/SM3LengthExtensionAttack/blob/master/%E5%AE%9E%E9%AA%8C%E6%96%87%E6%A1%A3.md
+
+https://github.com/jinyuanliu1/SM3-rho-attack?tab=readme-ov-file
+https://zhuanlan.zhihu.com/p/377651202
