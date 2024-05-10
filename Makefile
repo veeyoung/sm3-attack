@@ -2,20 +2,20 @@ SHAREFLAGS = -s -g0 -fdata-sections -ffunction-sections -Wl,--gc-sections
 SOFLAGS = $(SHAREFLAGS) -march=native -msse2 -fPIC -shared
 LINKFLAGS = $(SHAREFLAGS) -L. -lcommon -Wl,-rpath=.
 
-all: rho-attack LengthAttack BirthdayAttack
+all: rho-attack.out LengthAttack.out BirthdayAttack.out
 
 
-LengthAttack: libcommon.so LengthAttack.cpp
-	g++ LengthAttack.cpp $(LINKFLAGS) -o LengthAttack
+LengthAttack.out: libcommon.so LengthAttack.cpp common.h
+	g++ LengthAttack.cpp $(LINKFLAGS) -o LengthAttack.out
 
-rho-attack: libcommon.so rho-attack.cpp
-	g++ rho-attack.cpp $(LINKFLAGS) -o rho-attack
+rho-attack.out: libcommon.so rho-attack.cpp common.h
+	g++ rho-attack.cpp $(LINKFLAGS) -o rho-attack.out
 
-BirthdayAttack: libcommon.so BirthdayAttack.cpp
-	g++ BirthdayAttack.cpp $(LINKFLAGS) -o BirthdayAttack
+BirthdayAttack.out: libcommon.so BirthdayAttack.cpp common.h
+	g++ BirthdayAttack.cpp $(LINKFLAGS) -o BirthdayAttack.out
 
 libcommon.so: common.cpp common.h
 	g++ common.cpp $(SOFLAGS) -o libcommon.so
 
 clean:
-	$(RM) rho-attack LengthAttack BirthdayAttack libcommon.so
+	$(RM) *.out libcommon.so

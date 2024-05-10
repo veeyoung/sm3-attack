@@ -44,7 +44,7 @@ unsigned char* padMessage(const unsigned char* message, unsigned int messageLen,
 /*
 * SM3计算函数
 */
-unsigned char* SM3Calc(const unsigned char* message,
+void SM3Calc(const unsigned char* message,
     unsigned int messageLen, unsigned char digest[SM3_HASH_SIZE], unsigned int iv[], bool pad);
 
 /*

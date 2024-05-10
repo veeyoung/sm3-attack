@@ -206,65 +206,69 @@ void SM3ProcessMessageBlock(SM3Context* context)
 /*
 * 填充消息
 */
-unsigned char* padMessage(const unsigned char* message, unsigned int messageLen, unsigned int* paddedLen) {
-    *paddedLen = messageLen % 64 <= 55 ? (messageLen / 64 + 1) * 64 : (messageLen / 64 + 2) * 64;
-    unsigned char* messageBlock = (unsigned char*)malloc(*paddedLen);
-    if (messageBlock == NULL) {
+unsigned char* padMessage(const unsigned char* message, unsigned int messageLen, unsigned int* padLen) {
+    *padLen = (64 - messageLen % 64) + (messageLen % 64 > 55)*64;
+    unsigned char* padBlock = (unsigned char*)malloc(*padLen);
+    if (padBlock == NULL) {
         fprintf(stderr, "Error: Memory allocation failed\n");
         exit(1);
     }
 
-    memset(messageBlock, 0, *paddedLen);
-    // 将 message 拷贝到 messageBlock 中
-    memcpy(messageBlock, message, messageLen);
+    memset(padBlock, 0, *padLen);
     // 填充消息分组
-    messageBlock[messageLen] = 0x80;
-    // 填充长度
+    padBlock[0] = 0x80;
 
+    // 填充长度
     unsigned int bitLen = messageLen * 8;
     if (IsLittleEndian())
         ReverseWord(&bitLen);
-    memcpy(messageBlock + *paddedLen - 4, &bitLen, 4);
-    return messageBlock;
+    memcpy(padBlock + *padLen - 4, &bitLen, 4);
+    return padBlock;
 }
 
 /*
 * SM3算法主函数
 */
-unsigned char* SM3Calc(const unsigned char* message,
-    unsigned int messageLen, unsigned char digest[SM3_HASH_SIZE], unsigned int iv[], bool pad)
+void SM3Calc(const unsigned char* message,
+    unsigned int messageLen, unsigned char digest[SM3_HASH_SIZE], unsigned int iv[], bool toPad)
 {
     if (iv == NULL){
         iv = ivStd;
     }
     SM3Context context;
-    unsigned int i, remainder, bitLen;
 
     /* 初始化上下文 */
     SM3Init(&context, iv);
 
-    unsigned int messagePaddedLen;
-    unsigned char* messagePadded = NULL;
+    unsigned int padLen;
+    unsigned char* pad = NULL;
     // 填充消息
-    if (pad){
-        messagePadded = padMessage(message, messageLen, &messagePaddedLen);
-        message = messagePadded;
-        messageLen = messagePaddedLen;
+    if (toPad){
+        pad = padMessage(message, messageLen, &padLen);
     }
     else if (messageLen % 64 != 0){
         printf("error, message not padded\n");
-        return NULL;
+        return ;
     }
 
     /* 对前面的消息分组进行处理 */
+    int i;
     for (i = 0; i < messageLen / 64; i++)
     {
         memcpy(context.messageBlock, message + i * 64, 64);
         SM3ProcessMessageBlock(&context);
     }
-    if (messagePadded){
-        free(messagePadded);
-        message = messagePadded = NULL;
+
+    if (pad){
+        memcpy(context.messageBlock, message + i * 64, messageLen % 64);
+        memcpy(context.messageBlock + messageLen % 64, pad, padLen % 64);
+        SM3ProcessMessageBlock(&context);
+        if (padLen >= 64){
+            memcpy(context.messageBlock, pad + padLen - 64, 64);
+            SM3ProcessMessageBlock(&context);
+        }
+        free(pad);
+        pad = NULL;
     }
 
     /* 返回结果 */
@@ -273,5 +277,4 @@ unsigned char* SM3Calc(const unsigned char* message,
             ReverseWord(context.intermediateHash + i);
     memcpy(digest, context.intermediateHash, SM3_HASH_SIZE);
 
-    return digest;
 }

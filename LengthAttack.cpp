@@ -34,31 +34,39 @@ int main(int argc, char* argv[])
     }
     cout << endl;
 
+    unsigned char secretDataAppendPadded[secretLen + dataLen + appendLen + 4 * 64];
+
     // 生成secret+data
-    unsigned char secretData[secretLen + dataLen + 1] = {};
-    memcpy(secretData, secret, secretLen);
-    memcpy(secretData + secretLen, data, dataLen + 1);
+    memcpy(secretDataAppendPadded, secret, secretLen);
+    memcpy(secretDataAppendPadded + secretLen, data, dataLen + 1);
 
     //计算(secret+data)的hash值
     unsigned char result[32];
-    SM3Calc(secretData, secretLen + dataLen, result, ivStd, true);
+    SM3Calc(secretDataAppendPadded, secretLen + dataLen, result, ivStd, true);
     cout << "\nhash(secret+data):" << endl;
     print_Hexvalue(result, SM3_HASH_SIZE);
 
-    // 攻击者不知道secret，所以把secret部分填充0
-    memset(secretData, 0, secretLen);
     // 填充secretData
+    unsigned int padLen1;
     unsigned int secretDataPaddedLen;
-    unsigned char* secretDataPadded;
-    secretDataPadded = padMessage(secretData, secretLen + dataLen, &secretDataPaddedLen);
+    unsigned char* pad;
+    pad = padMessage(secretDataAppendPadded, secretLen + dataLen, &padLen1);
+    secretDataPaddedLen = secretLen + dataLen + padLen1;
+    memcpy(secretDataAppendPadded + secretLen + dataLen, pad, padLen1);
+    free(pad);
+
     // 追加攻击消息append
-    unsigned char secretDataAppend[secretDataPaddedLen + appendLen + 1] = {};
-    memcpy(secretDataAppend, secretDataPadded, secretDataPaddedLen);
-    memcpy(secretDataAppend + secretDataPaddedLen, append, appendLen);
+    // 攻击者不知道secret，所以把secret部分填充0
+    memset(secretDataAppendPadded, 0, secretLen);
+    memcpy(secretDataAppendPadded + secretDataPaddedLen, append, appendLen);
+
     // 填充secretDataAppend
     unsigned int secretDataAppendPaddedLen;
-    unsigned char* secretDataAppendPadded;
-    secretDataAppendPadded = padMessage(secretDataAppend, secretDataPaddedLen + appendLen, &secretDataAppendPaddedLen);
+    unsigned int padLen2;
+    pad = padMessage(secretDataAppendPadded, secretDataPaddedLen + appendLen, &padLen2);
+    secretDataAppendPaddedLen = secretDataPaddedLen + appendLen + padLen2;
+    memcpy(secretDataAppendPadded + secretDataPaddedLen + appendLen, pad, padLen2);
+    free(pad);
 
     // 更改初始向量IV为hash(secret+data)来计算hash(m')
     if (IsLittleEndian())
@@ -70,13 +78,11 @@ int main(int argc, char* argv[])
 
     // 输出攻击消息
     cout << "\ndata+padding+append:" << endl;
-    print_Hexvalue(secretDataAppend + secretLen, secretDataPaddedLen + appendLen - secretLen);
+    print_Hexvalue(secretDataAppendPadded + secretLen, secretDataPaddedLen + appendLen - secretLen);
     //服务端在开头加上secret,计算最终消息hash(secret+padding+append)
     memcpy(secretDataAppendPadded, secret, secretLen);
     unsigned char result_2[32];
     SM3Calc(secretDataAppendPadded, secretDataAppendPaddedLen, result_2, ivStd, false);
     cout << "hash(secret+data+padding+append):" << endl;
     print_Hexvalue(result_2, SM3_HASH_SIZE);
-    free(secretDataPadded);
-    free(secretDataAppendPadded);
 }
